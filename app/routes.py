@@ -2,20 +2,21 @@ import re
 import requests
 from flask import Blueprint, request, jsonify
 from app.services import GoogleSheetsService
+from bs4 import BeautifulSoup  # For cleaning HTML tags
 
 google_sheets_bp = Blueprint("google_sheets", __name__)
 sheets_service = GoogleSheetsService()
 
 
 def verify_telex_request(req):
-    return True  # Disabled authentication for now
+    return True  # Authentication disabled for now
 
 
 @google_sheets_bp.route("/api/telex/webhook", methods=["POST"])
 def telex_webhook():
     """Telex webhook to fetch IT asset details based on Service Tag."""
 
-    # Log the full request for debugging
+    # Log request headers & body for debugging
     print("Headers:", request.headers)
     print("Body:", request.get_json())
 
@@ -24,18 +25,21 @@ def telex_webhook():
 
     # Get request JSON
     data = request.get_json()
-    message_text = data.get("message", "").strip('<>')
+    message_text = data.get("message", "")
 
-    # Debugging logs
-    print("✅ Received JSON:", data)
-    print("✅ Extracted Message:", message_text)
+    # ✅ Remove HTML tags properly
+    message_text = BeautifulSoup(message_text, "html.parser").get_text()
 
-    # Clean message (remove HTML, extra spaces)
-    message_text = re.sub(r"<[^>]*>", "", message_text)  # Remove HTML tags if any
-    message_text = " ".join(message_text.split())  # Normalize spaces
+    # ✅ Normalize spaces
+    message_text = " ".join(message_text.split())
 
     # Debugging log after cleaning
-    print("✅ Cleaned Message:", message_text)
+    print("✅ Cleaned Message:", repr(message_text))
+
+    # ✅ Ignore messages that don't start with "/assetlookup"
+    if not message_text.lower().startswith("/assetlookup"):
+        print("✅ Message does not match command, passing it as normal.")
+        return "", 200  # Respond with HTTP 200 but no content
 
     # Extract service tag from message
     match = re.search(r"/assetlookup\s+(\S+)", message_text, re.IGNORECASE)
@@ -44,8 +48,8 @@ def telex_webhook():
         print("❌ Regex failed to match.")  # Debugging
         return jsonify({"error": "Invalid command format"}), 400
 
-    service_tag = str(match.group(1)).strip()
-    print("✅ Extracted Service Tag:", service_tag)  # Debugging
+    service_tag = match.group(1).strip()
+    print("✅ Extracted Service Tag:", repr(service_tag))  # Debugging
 
     # Fetch asset details from Google Sheets
     asset_details = sheets_service.get_asset_details(service_tag)
@@ -70,7 +74,7 @@ def telex_webhook():
     payload = {
         "event_name": "Asset Lookup",
         "message": response_text,
-        "status": "success" if asset_details else "error",
+        "status": "success",
         "username": "IT System"
     }
 
@@ -80,7 +84,13 @@ def telex_webhook():
             json=payload,
             headers={"Accept": "application/json", "Content-Type": "application/json"}
         )
-        print("Telex Response:", telex_response.json())
+
+        # ✅ Ensure JSON response is valid
+        try:
+            print("Telex Response:", telex_response.json())
+        except Exception:
+            print("Telex Response (Non-JSON):", telex_response.text)
+
     except Exception as e:
         print("Error sending message to Telex:", str(e))
 

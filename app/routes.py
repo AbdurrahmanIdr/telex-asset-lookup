@@ -1,7 +1,5 @@
 import re
-
 from flask import Blueprint, request, jsonify
-
 from app.services import GoogleSheetsService
 
 google_sheets_bp = Blueprint("google_sheets", __name__)
@@ -12,24 +10,27 @@ def verify_telex_request(req):
 
 @google_sheets_bp.route("/api/telex/webhook", methods=["POST"])
 def telex_webhook():
-    """Telex webhook to fetch IT asset details based on a command like '/assetlookup HJT0P34'."""
-    if not verify_telex_request(request):
+    """Telex webhook to fetch IT asset details based on Service Tag."""
+
+    # Log the full request for debugging
+    print("Headers:", request.headers)
+    print("Body:", request.get_json())
+
+    if not verify_telex_request(request):  # Verify if authentication is needed
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.json
-    if not data or "text" not in data:
-        return jsonify({"error": "Invalid request, missing 'text' field"}), 400
+    text = data.get("text", "")
 
-    text = data["text"].strip()
-
-    # Extract service tag from the message (e.g., "/assetlookup HJT0P34")
+    # Extract service tag from the command format: `/assetlookup HJT0P34`
     match = re.match(r"/assetlookup\s+(\S+)", text)
     if not match:
         return jsonify({"error": "Invalid command format"}), 400
 
     service_tag = match.group(1)
+    print(f"🔍 Looking up asset for Service Tag: {service_tag}")
 
-    # Query Google Sheets
+    # Query Google Sheets for asset details
     asset_details = sheets_service.get_asset_details(service_tag)
 
     if not asset_details:
@@ -48,3 +49,4 @@ def telex_webhook():
     )
 
     return jsonify({"text": response_text}), 200
+# The telex_webhook function is a route that listens for POST requests at /api/telex/webhook.

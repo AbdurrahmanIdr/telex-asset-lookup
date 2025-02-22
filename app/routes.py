@@ -44,7 +44,7 @@ def telex_webhook():
         print("❌ Regex failed to match.")  # Debugging
         return jsonify({"error": "Invalid command format"}), 400
 
-    service_tag = match.group(1)
+    service_tag = str(match.group(1)).strip()
     print("✅ Extracted Service Tag:", service_tag)  # Debugging
 
     # Fetch asset details from Google Sheets

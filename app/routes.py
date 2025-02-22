@@ -2,7 +2,7 @@ import re
 import requests
 from flask import Blueprint, request, jsonify
 from app.services import GoogleSheetsService
-from bs4 import BeautifulSoup  # For cleaning HTML tags
+from bs4 import BeautifulSoup  # For properly removing HTML tags
 
 google_sheets_bp = Blueprint("google_sheets", __name__)
 sheets_service = GoogleSheetsService()
@@ -27,11 +27,11 @@ def telex_webhook():
     data = request.get_json()
     message_text = data.get("message", "")
 
-    # ✅ Remove HTML tags properly
+    # ✅ Strip HTML properly
     message_text = BeautifulSoup(message_text, "html.parser").get_text()
 
     # ✅ Normalize spaces
-    message_text = " ".join(message_text.split())
+    message_text = " ".join(message_text.split()).strip()
 
     # Debugging log after cleaning
     print("✅ Cleaned Message:", repr(message_text))
@@ -42,11 +42,11 @@ def telex_webhook():
         return "", 200  # Respond with HTTP 200 but no content
 
     # Extract service tag from message
-    match = re.search(r"/assetlookup\s+(\S+)", message_text, re.IGNORECASE)
+    match = re.match(r"^/assetlookup\s+(\S+)", message_text, re.IGNORECASE)
 
     if not match:
-        print("❌ Regex failed to match.")  # Debugging
-        return jsonify({"error": "Invalid command format"}), 400
+        print("❌ Invalid command format.")  # Debugging
+        return "", 200  # Ignore invalid commands instead of returning an error
 
     service_tag = match.group(1).strip()
     print("✅ Extracted Service Tag:", repr(service_tag))  # Debugging

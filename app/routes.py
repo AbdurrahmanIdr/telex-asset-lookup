@@ -16,44 +16,41 @@ def verify_telex_request(req):
 def telex_webhook():
     """Telex webhook to fetch IT asset details based on Service Tag."""
 
-    # Log request headers & body for debugging
-    print("Headers:", request.headers)
-    print("Body:", request.get_json())
+    # Log raw request headers and body
+    print("Headers:", dict(request.headers))
+    print("Raw Body:", request.data)  # Logs raw body before JSON parsing
+    print("Parsed JSON:", request.get_json())
 
-    if not verify_telex_request(request):  # Verify if authentication is needed
-        return jsonify({"error": "Unauthorized"}), 403
-
-    # Get request JSON
-    data = request.get_json()
+    # Extract message safely
+    data = request.get_json() or {}
     message_text = data.get("message", "")
 
-    # ✅ Strip HTML properly
-    message_text = BeautifulSoup(message_text, "html.parser").get_text()
+    # Debugging: Print received message
+    print("🔍 Raw Message from Telex:", repr(message_text))
 
-    # ✅ Normalize spaces
-    message_text = " ".join(message_text.split()).strip()
+    # Strip HTML using BeautifulSoup
+    cleaned_message = BeautifulSoup(message_text, "html.parser").get_text()
+    cleaned_message = " ".join(cleaned_message.split()).strip()
 
-    # Debugging log after cleaning
-    print("✅ Cleaned Message:", repr(message_text))
+    # Debugging: Print cleaned message
+    print("✅ Cleaned Message:", repr(cleaned_message))
 
-    # ✅ Ignore messages that don't start with "/assetlookup"
-    if not message_text.lower().startswith("/assetlookup"):
-        print("✅ Message does not match command, passing it as normal.")
-        return "", 200  # Respond with HTTP 200 but no content
+    # If the message does not start with "/assetlookup", ignore it
+    if not cleaned_message.lower().startswith("/assetlookup"):
+        print("✅ Not an asset lookup command. Ignoring.")
+        return "", 200
 
-    # Extract service tag from message
-    match = re.match(r"^/assetlookup\s+(\S+)", message_text, re.IGNORECASE)
-
+    # Extract service tag
+    match = re.match(r"^/assetlookup\s+(\S+)", cleaned_message, re.IGNORECASE)
     if not match:
-        print("❌ Invalid command format.")  # Debugging
-        return "", 200  # Ignore invalid commands instead of returning an error
+        print("❌ Invalid command format. Ignoring.")
+        return "", 200
 
     service_tag = match.group(1).strip()
-    print("✅ Extracted Service Tag:", repr(service_tag))  # Debugging
+    print("✅ Extracted Service Tag:", repr(service_tag))
 
-    # Fetch asset details from Google Sheets
+    # Fetch asset details
     asset_details = sheets_service.get_asset_details(service_tag)
-
     if not asset_details:
         return jsonify({"message": f"❌ Asset with Service Tag '{service_tag}' not found"}), 200
 
@@ -68,6 +65,9 @@ def telex_webhook():
         f"📍 *Location:* {asset_details.get('Location', 'N/A')}\n"
         f"📌 *Status:* {asset_details.get('Status', 'N/A')}"
     )
+
+    # Debugging: Print response
+    print("✅ Response to Telex:", response_text)
 
     # Send response to Telex
     telex_webhook_url = "https://ping.telex.im/v1/webhooks/01952a7d-5b93-7600-add1-8c69c0289c9d"

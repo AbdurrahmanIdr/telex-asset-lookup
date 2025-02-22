@@ -9,17 +9,20 @@ google_sheets_bp = Blueprint("google_sheets", __name__)
 sheets_service = GoogleSheetsService()
 
 
+# def verify_telex_request(req):
+#     """Verify Telex request using HMAC signature."""
+#     signature = req.headers.get("X-Telex-Signature")
+#     if not signature:
+#         return False
+#
+#     computed_signature = hmac.new(
+#         config.TELEX_WEBHOOK_SECRET.encode(), req.data, hashlib.sha256
+#     ).hexdigest()
+#
+#     return hmac.compare_digest(computed_signature, signature)
+
 def verify_telex_request(req):
-    """Verify Telex request using HMAC signature."""
-    signature = req.headers.get("X-Telex-Signature")
-    if not signature:
-        return False
-
-    computed_signature = hmac.new(
-        config.TELEX_WEBHOOK_SECRET.encode(), req.data, hashlib.sha256
-    ).hexdigest()
-
-    return hmac.compare_digest(computed_signature, signature)
+    return True  # Disable authentication
 
 
 @google_sheets_bp.route("/api/telex/webhook", methods=["POST"])

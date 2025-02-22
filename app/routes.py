@@ -28,25 +28,23 @@ def verify_telex_request(req):
 @google_sheets_bp.route("/api/telex/webhook", methods=["POST"])
 def telex_webhook():
     """Telex webhook to fetch IT asset details based on Service Tag."""
-    if not verify_telex_request(request):
+    if not verify_telex_request(request):  # Verify if authentication is needed
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.json
-    service_tag = data.get("service_tag")  # Use Service Tag instead of asset_id
-    return_url = data.get("return_url")
+    service_tag = data.get("service_tag")  # Extract Service Tag
 
-    if not service_tag or not return_url:
-        return jsonify({"error": "Missing service_tag or return_url"}), 400
+    if not service_tag:
+        return jsonify({"error": "Missing service_tag"}), 400
 
     asset_details = sheets_service.get_asset_details(service_tag)
 
     if not asset_details:
         return jsonify({"error": "Asset not found"}), 404
 
-    # Send the extracted details back to Telex
-    response = requests.post(return_url, json=asset_details)
-
-    if response.status_code == 200:
-        return jsonify({"message": "Asset details sent to Telex"}), 200
-    else:
-        return jsonify({"error": "Failed to send data to Telex"}), 500
+    # Return the asset details directly as response
+    return jsonify({
+        "status": "ok",
+        "data": asset_details
+    }), 200
+# The telex_webhook function in the google_sheets_bp blueprint now extracts the service_tag from the request JSON data

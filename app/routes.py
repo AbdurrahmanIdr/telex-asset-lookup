@@ -20,17 +20,16 @@ def telex_webhook():
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.json
-    text = data.get("text", "")
+    message_text = data.get("message", "")
 
-    # Extract service tag from the command format: `/assetlookup HJT0P34`
-    match = re.match(r"/assetlookup\s+(\S+)", text)
+    # Extract service tag from the message using regex
+    match = re.search(r"/assetlookup\s+(\S+)", message_text)
     if not match:
         return jsonify({"error": "Invalid command format"}), 400
 
     service_tag = match.group(1)
-    print(f"🔍 Looking up asset for Service Tag: {service_tag}")
 
-    # Query Google Sheets for asset details
+    # Query Google Sheets
     asset_details = sheets_service.get_asset_details(service_tag)
 
     if not asset_details:
@@ -49,4 +48,18 @@ def telex_webhook():
     )
 
     return jsonify({"text": response_text}), 200
-# The telex_webhook function is a route that listens for POST requests at /api/telex/webhook.
+# The telex_webhook function is a view function that processes incoming webhook requests from Telex.
+# The function extracts the service tag from the message text using a regular expression, queries Google Sheets
+# for the asset details, and formats the response text to be sent back to Telex.
+# The response text includes details such as the service tag, hostname, model, current user, previous user, location, and status of the asset.
+# The response is then returned as a JSON object with the appropriate HTTP status code.
+# The GoogleSheetsService class is used to interact with Google Sheets and retrieve asset details based on the service tag.
+# The verify_telex_request function is used to verify the authenticity of the incoming Telex webhook request, but it is currently disabled for simplicity.
+# The google_sheets_bp Blueprint is used to define the route for the Telex webhook and handle the incoming requests.
+# The route "/api/telex/webhook" is registered with the Blueprint and associated with the telex_webhook view function.
+# When Telex sends a POST request to this route, the telex_webhook function is executed to process the request.
+# The function extracts the necessary information from the request, processes the data, and sends a response back to Telex.
+# The response includes the asset details retrieved from Google Sheets in a formatted text message.
+# The response is sent back to Telex as a JSON object with the appropriate status code.
+# The view function is responsible for handling the business logic of processing the webhook request and generating the appropriate response.
+# The GoogleSheetsService class encapsulates the functionality for interacting with Google Sheets and retrieving asset details based on the service tag.

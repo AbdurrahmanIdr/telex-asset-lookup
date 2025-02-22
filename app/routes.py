@@ -24,7 +24,7 @@ def telex_webhook():
 
     # Get request JSON
     data = request.get_json()
-    message_text = data.get("message", "").strip()
+    message_text = data.get("message", "").strip('<>')
 
     # Debugging logs
     print("✅ Received JSON:", data)

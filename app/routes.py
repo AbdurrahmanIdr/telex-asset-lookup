@@ -22,34 +22,38 @@ def telex_webhook():
     if not verify_telex_request(request):  # Verify if authentication is needed
         return jsonify({"error": "Unauthorized"}), 403
 
-    data = request.json
-    message_text = data.get("message", "")
+        # Get request JSON
+    data = request.get_json()
+    print("Received JSON:", data)  # Debugging
+    message_text = data.get("message", "").strip()
+    print("Extracted Message:", message_text)  # Debugging
 
-    # Extract service tag from the message using regex
-    match = re.search(r"/assetlookup\\s+(\\S+)", message_text)
+    # Extract service tag from message
+    match = re.search(r"/assetlookup\s+(\S+)", message_text)
     if not match:
+        print("Regex failed to match.")  # Debugging
         return jsonify({"error": "Invalid command format"}), 400
 
     service_tag = match.group(1)
-    print("Service Tag Extracted:", service_tag)
+    print("Extracted Service Tag:", service_tag)  # Debugging
 
-    # Query Google Sheets
+    # Fetch asset details
     asset_details = sheets_service.get_asset_details(service_tag)
-    print("Asset Details:", asset_details)
 
     if not asset_details:
-        response_text = f"❌ Asset with Service Tag '{service_tag}' not found"
-    else:
-        response_text = (
-            f"🔍 *Asset Lookup Result:*\n"
-            f"🆔 *Service Tag:* {asset_details.get('Service Tag', 'N/A')}\n"
-            f"💻 *Hostname:* {asset_details.get('Hostname', 'N/A')}\n"
-            f"📌 *Model:* {asset_details.get('Laptop Model', 'N/A')}\n"
-            f"👤 *Current User:* {asset_details.get('Current User', 'N/A')}\n"
-            f"🔄 *Previous User:* {asset_details.get('Previous User', 'N/A')}\n"
-            f"📍 *Location:* {asset_details.get('Location', 'N/A')}\n"
-            f"📌 *Status:* {asset_details.get('Status', 'N/A')}"
-        )
+        return jsonify({"message": f"❌ Asset with Service Tag '{service_tag}' not found"}), 200
+
+    # Format the response
+    response_text = (
+        f"🔍 *Asset Lookup Result:*\n"
+        f"🆔 *Service Tag:* {asset_details.get('Service Tag', 'N/A')}\n"
+        f"💻 *Hostname:* {asset_details.get('Hostname', 'N/A')}\n"
+        f"📌 *Model:* {asset_details.get('Laptop Model', 'N/A')}\n"
+        f"👤 *Current User:* {asset_details.get('Current User', 'N/A')}\n"
+        f"🔄 *Previous User:* {asset_details.get('Previous User', 'N/A')}\n"
+        f"📍 *Location:* {asset_details.get('Location', 'N/A')}\n"
+        f"📌 *Status:* {asset_details.get('Status', 'N/A')}"
+    )
 
     # Send response to Telex
     telex_webhook_url = "https://ping.telex.im/v1/webhooks/01952a7d-5b93-7600-add1-8c69c0289c9d"

@@ -22,28 +22,38 @@ def telex_webhook():
     if not verify_telex_request(request):  # Verify if authentication is needed
         return jsonify({"error": "Unauthorized"}), 403
 
-        # Get request JSON
+    # Get request JSON
     data = request.get_json()
-    print("Received JSON:", data)  # Debugging
     message_text = data.get("message", "").strip()
-    print("Extracted Message:", message_text)  # Debugging
+
+    # Debugging logs
+    print("✅ Received JSON:", data)
+    print("✅ Extracted Message:", message_text)
+
+    # Clean message (remove HTML, extra spaces)
+    message_text = re.sub(r"<[^>]*>", "", message_text)  # Remove HTML tags if any
+    message_text = " ".join(message_text.split())  # Normalize spaces
+
+    # Debugging log after cleaning
+    print("✅ Cleaned Message:", message_text)
 
     # Extract service tag from message
-    match = re.search(r"/assetlookup\s+(\S+)", message_text)
+    match = re.search(r"/assetlookup\s+(\S+)", message_text, re.IGNORECASE)
+
     if not match:
-        print("Regex failed to match.")  # Debugging
+        print("❌ Regex failed to match.")  # Debugging
         return jsonify({"error": "Invalid command format"}), 400
 
     service_tag = match.group(1)
-    print("Extracted Service Tag:", service_tag)  # Debugging
+    print("✅ Extracted Service Tag:", service_tag)  # Debugging
 
-    # Fetch asset details
+    # Fetch asset details from Google Sheets
     asset_details = sheets_service.get_asset_details(service_tag)
 
     if not asset_details:
         return jsonify({"message": f"❌ Asset with Service Tag '{service_tag}' not found"}), 200
 
-    # Format the response
+    # Format response
     response_text = (
         f"🔍 *Asset Lookup Result:*\n"
         f"🆔 *Service Tag:* {asset_details.get('Service Tag', 'N/A')}\n"

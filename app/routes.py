@@ -55,7 +55,7 @@ def telex_webhook():
     )
 
     # Send response to the Telex webhook
-    telex_webhook_url = "https://ping.telex.im/v1/webhooks/019534cf-4554-7b49-b908-684c1caed75e"
+    telex_webhook_url = "https://ping.telex.im/v1/webhooks/019534eb-796d-7a6b-8426-22debdf52ec6"
     payload = {
         "event_name": "Asset Lookup",
         "message": response_text,

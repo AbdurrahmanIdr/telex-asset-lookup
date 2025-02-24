@@ -112,6 +112,8 @@ To test the integration through Telex, send a message in the Telex  channel `it-
 ```
 The bot should respond with asset details if the service tag exists.
 
+![img.png](img.png)
+
 ## Project Structure
 
 - `run.py`: Entry point for the Flask application.

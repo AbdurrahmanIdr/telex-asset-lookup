@@ -56,7 +56,7 @@ This project provides a Flask-based web application that integrates with Google 
 ```json
 {
   "service_tag": "HJT0P34",
-  "return_url": "https://example.com/webhook"
+  "terget_url": "https://tal-ffsh.onrender.com/api/telex/webhook"
 }
 ```
 
@@ -74,6 +74,44 @@ This project provides a Flask-based web application that integrates with Google 
 }
 ```
 
+## Testing the Application
+
+### Running Unit Tests with `pytest`
+
+To run the tests, install `pytest` if you haven't already:
+```bash
+pip install pytest
+```
+
+Run the test suite:
+```bash
+pytest tests/
+```
+
+### Testing the Webhook using `curl`
+
+#### Valid Asset Lookup Request:
+```bash
+curl -X POST "https://tal-ffsh.onrender.com/api/telex/webhook" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "/assetlookup HJT0P34"}'
+```
+
+#### Invalid Request (Ignored Message):
+```bash
+curl -X POST "https://tal-ffsh.onrender.com/api/telex/webhook" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, this is a normal message"}'
+```
+
+### Sending a Message via Telex
+
+To test the integration through Telex, send a message in the Telex  channel `it-support` containing:
+```
+/assetlookup HJT0P34
+```
+The bot should respond with asset details if the service tag exists.
+
 ## Project Structure
 
 - `run.py`: Entry point for the Flask application.
@@ -81,8 +119,8 @@ This project provides a Flask-based web application that integrates with Google 
 - `app/config.py`: Configuration settings for the application.
 - `app/routes.py`: Defines the routes and webhook logic.
 - `app/services.py`: Handles Google Sheets operations.
+- `tests/`: Contains unit tests for the webhook and service functions.
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-```
